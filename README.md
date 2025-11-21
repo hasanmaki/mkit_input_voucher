@@ -147,7 +147,8 @@ Selengkap nya bisa anda check di [pyproject.toml](pyproject.toml)
 1-Pastikan Anda Sudah menginstall UV untuk package menagement / installer [klik dsini untuk panduan instalasi uv](https://docs.astral.sh/uv/getting-started/installation/)
 2-rubah file .env dengan credentials anda
 3-klik [start](start.bat) disini ada pengaturan dan lain lain , silahkan di check terlebih dahulu
-
+> Jika anda menggunakan Local AI Model Untuk Ai Agent, Pastikan anda sudah menginstall Ollama
+>
 ###
 
 developed by

@@ -208,3 +208,5 @@ __marimo__/
 .vscode/
 .env
 .factory/
+.kilocode/
+*.instructions.md

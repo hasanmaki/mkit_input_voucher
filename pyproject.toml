@@ -1,7 +1,7 @@
 [project]
-name = "mkit-input-voucher"
-version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.13"
-dependencies = []
+    dependencies   =[]
+    description    ="A tools for otomax software to bulk insert voucher codes into otomax database."
+    name           ="mkit-input-voucher"
+    readme         ="README.md"
+    requires-python=">=3.13"
+    version        ="0.1.0"

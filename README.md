@@ -1,114 +1,157 @@
 # mkit_input_voucher
 
-Project ini adalah Tools Pembantu Untuk Software Pulsa Otomax, Aplikasi Ini Bukan Official dan di develop oleh mkit team, Aplikasi ini di buat untuk enchance / addon untuk sistem input voucher fisik ke otomax.
+![Status](https://img.shields.io/badge/status-internal%20beta-orange?style=for-the-badge) ![Platform](https://img.shields.io/badge/platform-windows-blue?style=for-the-badge&logo=windows)
 
-`NOTE` : Aplikasi ini tidak untuk di deploy public , tetapi lebih di preferensikan untuk tools internal, dan local use only.
+**Unofficial Tools** untuk Software Pulsa Otomax yang dikembangkan oleh **mkit team**. Aplikasi ini dibuat sebagai *enhancement/addon* untuk mempermudah, mempercepat, dan memvalidasi sistem input voucher fisik ke database Otomax.
+Beberapa Agentic AI yang di gunakan saat development Project  ini adalah `Claude CLI` `Gemini CLI` `CODEX`
 
-## background
+> ⚠️ **DISCLAIMER:** Aplikasi ini **TIDAK UNTUK DEPLOYMENT PUBLIC**. Dikhususkan sebagai *internal tools* (Local Use Only) untuk menjaga keamanan data transaksi.
 
-input voucher fisik bisa menjadi task yang lumayan merepotkan, beberapa masalah yang addon ini coba selesaikan adalah :
+---
 
-- faster input : memberikan cara lebih cepat untuk input voucher fisik ke database
-- faster validation : validasi photo voucher fisik bisa menjadi tantangan tersendiri , dengan di buat nya aplikasi ini di harapkan mampu mempercepat validasi oleh cs ke database voucher fisik
-- faster verification : dengan integrasi ke addon otoplus, voucher fisik akan di check dahulu status pemakaian nya(optional feature kan be turn off jika tidak perlu) , sebelum kemudian di cari sumber photo fisik nya
+## 📖 Background
 
-## features
+Proses input voucher fisik (gesek) ke server pulsa seringkali menjadi tugas yang memakan waktu (bottleneck) dan rentan kesalahan manusia (*human error*).
 
-Aplikasi ini memilki beberapa feature sebagai tools addon otomax:
-    - Upload CSV|TXT : user upload predefined template csv or txt
-    - Form input : user input manual melalu form
-    - OCR : user upload photos dan auto detect nomor voucher
-    - Agent AI : user upload photos dan AI yang akan proses e2e
-    - Check Stok dan monitor status voucher fisik
-    - api search photo : di gunakan untuk mencari photo voucher fisik ( will be integrated dengan telegram bot dengan server terpisah)
-    - Multi Account User Session dan RBAC (next feature / realease)
+Addon ini dibangun untuk menyelesaikan masalah berikut:
+
+* **🚀 Faster Input:** Menggantikan input manual satu-persatu dengan metode *bulk* (CSV/TXT) dan otomatisasi.
+* **🛡️ Faster Validation:** Mempermudah CS memvalidasi fisik vs data digital sebelum masuk ke Core System.
+* **✅ Faster Verification:** Integrasi (opsional) dengan addon **Otoplus** untuk mengecek status voucher *sebelum* disimpan/validasi ulang.
+
+---
+
+## ✨ Key Features
+
+Aplikasi ini memiliki fitur *Funneling Input*, dimana berbagai metode input akan bermuara pada satu proses validasi yang sama:
+
+* **📂 Upload CSV | TXT:** Support predefined template untuk input massal ribuan voucher.
+* **📝 Form Input:** Antarmuka input manual yang ergonomis untuk input satuan/kecil.
+* **📷 OCR (Optical Character Recognition):** Auto-detect nomor SN/Voucher dari upload foto fisik.
+* **🤖 Agent AI:** Full E2E parsing dari foto voucher menggunakan AI (*Powered by Pydantic AI*).
+* **📊 Stock Monitoring:** Dashboard real-time untuk cek stok dan status voucher fisik.
+* **🔎 API Search Photo:** Pencarian bukti foto voucher (Integrasi Telegram Bot - *External Server*).
+* **🔐 RBAC System:** Multi-account session dan role management (Planned for Next Release).
+
+---
+
+## ⚙️ System Workflow
+
+Berikut adalah alur data dari berbagai *channel input* menuju *Core Otomax*:
 
 ```mermaid
-graph TD
-    %% --- STYLING ---
-    classDef input fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-    classDef ai fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
-    classDef process fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
-    classDef db fill:#e0f2f1,stroke:#00695c,stroke-width:2px;
-    classDef otomax fill:#ffebee,stroke:#c62828,stroke-width:4px;
-    classDef future fill:#f5f5f5,stroke:#9e9e9e,stroke-width:2px,stroke-dasharray: 3 3;
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#f0f4f8','primaryTextColor':'#1a202c','primaryBorderColor':'#cbd5e0','lineColor':'#718096','secondaryColor':'#e2e8f0','tertiaryColor':'#edf2f7','fontSize':'14px','fontFamily':'Inter, system-ui, sans-serif'}}}%%
 
-    %% --- FUTURE FEATURE (RBAC) ---
-    subgraph Security ["🔐 Security Layer (Next Release)"]
-        RBAC([Multi-Account & RBAC Session])
-    end
+graph LR
+    %% Modern minimal styling
+    classDef inputNode fill:#dbeafe,stroke:#3b82f6,stroke-width:1.5px,rx:8,color:#1e40af
+    classDef aiNode fill:#fae8ff,stroke:#a855f7,stroke-width:1.5px,rx:8,color:#7e22ce,stroke-dasharray:4 4
+    classDef processNode fill:#fef3c7,stroke:#f59e0b,stroke-width:1.5px,rx:8,color:#b45309
+    classDef dbNode fill:#d1fae5,stroke:#10b981,stroke-width:1.5px,color:#047857
+    classDef criticalNode fill:#fee2e2,stroke:#ef4444,stroke-width:2.5px,rx:8,color:#991b1b
+    classDef apiNode fill:#e9d5ff,stroke:#8b5cf6,stroke-width:1.5px,rx:8,color:#6b21a8
+    classDef futureNode fill:#f3f4f6,stroke:#9ca3af,stroke-width:1px,rx:8,color:#6b7280,stroke-dasharray:3 3
 
-    %% --- INPUT CHANNELS ---
-    subgraph Sources ["📥 Input Channels (Voucher Fisik)"]
+    %% Security Layer
+    subgraph Security["🔐 Security Layer"]
         direction TB
-        CSV[📂 Upload CSV / TXT]
-        Form[📝 Form Input Manual]
-        OCR[📷 Scan OCR Image]
-        AI[🤖 Agent AI Parser]
+        RBAC([Multi-Account & RBAC])
     end
 
-    %% --- CORE LOGIC ---
-    subgraph Core_Engine ["⚙️ Addon Processing Core"]
-        Normalize[Normalisasi Format]
-        Validate{Validasi Data?}
-        Staging[(Staging DB\nTemporary)]
-        Preview[👀 User Preview & Confirm]
-        BulkIns{{🚀 Bulk Insert Process}}
+    %% Input Channels
+    subgraph Sources["📥 Input Channels"]
+        direction TB
+        CSV[📂 CSV/TXT Upload]
+        Form[📝 Manual Form]
+        OCR[📷 OCR Scanner]
+        AI[🤖 AI Parser]
     end
 
-    %% --- MONITORING ---
-    subgraph Monitoring ["📊 Monitoring Tools"]
-        Stock[🔍 Check Stok & Status]
+    %% Processing Core
+    subgraph Core["⚙️ Processing Engine"]
+        direction TB
+        Normalize[Data Normalization]
+        Validate{Validation Check}
+        Staging[(Staging DB)]
+        Preview[User Review]
+        BulkIns{{Bulk Insert}}
     end
 
-    %% --- EXTERNAL SYSTEM ---
-    OtomaxDB[("🗄️ OTOMAX CORE DB")]
+    %% External Services
+    subgraph External["📡 External Services"]
+        APISearch[🔎 Photo Search API]
+    end
 
-    %% --- RELATIONS ---
-    RBAC -.- Sources
+    %% Core System
+    OtomaxDB[(🗄️ Otomax Core DB)]
 
-    CSV & Form & OCR & AI --> Normalize
+    %% Flow connections
+    RBAC -.-> Sources
+
+    CSV --> Normalize
+    Form --> Normalize
+    OCR --> Normalize
+    AI --> Normalize
+
     Normalize --> Validate
-
-    Validate -- "Valid" --> Staging
-    Validate -- "Error" --> ErrorLog[Log Error / Reject]
+    Validate -->|✓ Valid| Staging
+    Validate -->|✗ Invalid| ErrorLog[Error Log]
 
     Staging <--> Preview
+    Staging -.-> APISearch
     Preview --> BulkIns
-
     BulkIns ==> OtomaxDB
-    OtomaxDB -.-> Stock
 
-    %% --- APPLY STYLES ---
-    class CSV,Form,OCR input;
-    class AI ai;
-    class Normalize,Validate,Preview,BulkIns process;
-    class Staging,OtomaxDB db;
-    class RBAC,ErrorLog future;
-    class OtomaxDB otomax;
-
-
+    %% Apply modern styles
+    class CSV,Form,OCR inputNode
+    class AI aiNode
+    class Normalize,Validate,Preview,BulkIns processNode
+    class Staging,OtomaxDB dbNode
+    class RBAC,ErrorLog futureNode
+    class OtomaxDB criticalNode
+    class APISearch apiNode
 ```
 
-## Tech Stack
+## ✅ Tech Stack
 
-- backend :
-  - python >= 3.13
-  - uv
-  - ruff
-  - fastapi
-  - loguru
-  - sqlalchemy
-  - aiosqlite
-  - pyodbc
-  - pydantic-settings
-  - pydantic AI
+Berikut adalah beberapa stack yang di gunakan pada project ini , dan beberapa penjelasan terkait.
 
-- frontend :
-  - undecided yet
+* **Backend:**
+  * **Lang:** Python >= 3.13
+  * **Package manager:** uv
+  * **Framework:** fastapi
+  * **ORM:** sqlalchemy
+  * **Database Staging:** aiosqlite
+  * **Database Core:** sqlserver
+  * **AI agents:** pydantic AI
+  * **OCR:** pytesseract
 
-## Libraries and testing
+* **Tools And Quality:**
+  * **Config:** pydantic-settings
+  * **Logging:** Loguru
+  * **Linter/Formatter:** Pyright, Ruff, SonarLint, CodeRabbit
+  * **Commit:** Pre-commit
+  * **Testing:** Pytest and related plugin
 
-selengkap nya untuk library ada di [pyproject.toml](pyproject.toml) beberapa di anatara nya adaah integrasi pre-commit untuk quality code dan lain lain
+* **Frontend (Server-Side Rendered):**
+  * **Template Engine:** Jinja2 (Integrated with FastAPI)
+  * **Interactivity:** HTMX (High-performance HTML over wire)
+  * **Client State:** Alpine.js (Minimalist JS framework)
+  * **Styling:** Tailwind CSS (via CDN)
+  * **Data Grid:** Tabulator.js (For high-performance bulk data preview)
 
-## License
+Selengkap nya bisa anda check di [pyproject.toml](pyproject.toml)
+
+## Cara Menjalankan Aplikasi
+
+1-Pastikan Anda Sudah menginstall UV untuk package menagement / installer [klik dsini untuk panduan instalasi uv](https://docs.astral.sh/uv/getting-started/installation/)
+2-rubah file .env dengan credentials anda
+3-klik [start](start.bat) disini ada pengaturan dan lain lain , silahkan di check terlebih dahulu
+
+###
+
+developed by
+![Static Badge](https://img.shields.io/badge/mkit_developer-ai_agents-red)
+
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi) ![Pydantic](https://img.shields.io/badge/pydantic-%23E92063.svg?style=for-the-badge&logo=pydantic&logoColor=white) ![SQLAlchemy](https://img.shields.io/badge/sqlalchemy-%23D71F00.svg?style=for-the-badge&logo=sqlalchemy&logoColor=white) ![MicrosoftSQLServer](https://img.shields.io/badge/Microsoft%20SQL%20Server-CC2927?style=for-the-badge&logo=microsoft%20sql%20server&logoColor=white) ![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)
+  ![uv](https://img.shields.io/badge/uv-%23DE5FE9.svg?style=for-the-badge&logo=uv&logoColor=white) [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)

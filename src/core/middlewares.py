@@ -21,16 +21,17 @@ class TraceIDMiddleware(BaseHTTPMiddleware):
 
 
 class RequestTimingMiddleware(BaseHTTPMiddleware):
-    """Measure request execution time."""
+    """Measure request execution time, even on errors."""
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         start = time.perf_counter()
-        response = await call_next(request)
-        duration = (time.perf_counter() - start) * 1000  # ms
+        try:
+            response = await call_next(request)
+        finally:
+            duration = (time.perf_counter() - start) * 1000  # ms
+            request.state.duration_ms = duration
 
-        request.state.duration_ms = duration
         response.headers["X-Process-Time"] = f"{duration:.2f}ms"
-
         return response
 
 
@@ -59,20 +60,23 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """Log the request AFTER all other middlewares fill request.state."""
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        response = await call_next(request)
-
-        logger.bind(
-            trace_id=getattr(request.state, "trace_id", None),
-            duration_ms=getattr(request.state, "duration_ms", None),
-            client_ip=getattr(request.state, "client_ip", None),
-            user_agent=getattr(request.state, "user_agent", None),
-            status=response.status_code,
-            method=request.method,
-            path=request.url.path,
-        ).info(
-            f"{request.method} {request.url.path} | "
-            f"status={response.status_code} | "
-            f"{getattr(request.state, 'duration_ms', 0):.2f}ms"
-        )
-
-        return response
+        response = None
+        try:
+            response = await call_next(request)
+            return response
+        finally:
+            # Log even if an exception occurred (will be re-raised after logging)
+            status = response.status_code if response else "error"
+            logger.bind(
+                trace_id=getattr(request.state, "trace_id", None),
+                duration_ms=getattr(request.state, "duration_ms", None),
+                client_ip=getattr(request.state, "client_ip", None),
+                user_agent=getattr(request.state, "user_agent", None),
+                status=status,
+                method=request.method,
+                path=request.url.path,
+            ).info(
+                f"{request.method} {request.url.path} | "
+                f"status={status} | "
+                f"{getattr(request.state, 'duration_ms', 0):.2f}ms"
+            )

@@ -52,10 +52,15 @@ async def app_exception_handler(  # noqa: RUF029
         method=request.method,
     ).error(f"{exc!r} | context={exc.context}")
 
+    # Include timing if available
+    headers = {"X-Trace-ID": trace_id}
+    if hasattr(request.state, "duration_ms"):
+        headers["X-Process-Time"] = f"{request.state.duration_ms:.2f}ms"
+
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": exc.to_dict()},
-        headers={"X-Trace-ID": trace_id},
+        headers=headers,
     )
 
 
@@ -70,6 +75,11 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
         exc_info=True,
     ).error(f"UNHANDLED ERROR: {exc}")
 
+    # Include timing if available
+    headers = {"X-Trace-ID": trace_id}
+    if hasattr(request.state, "duration_ms"):
+        headers["X-Process-Time"] = f"{request.state.duration_ms:.2f}ms"
+
     return JSONResponse(
         status_code=500,
         content={
@@ -79,5 +89,5 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
                 "trace_id": trace_id,
             }
         },
-        headers={"X-Trace-ID": trace_id},
+        headers=headers,
     )

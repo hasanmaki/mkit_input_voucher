@@ -1,11 +1,17 @@
 [project]
     dependencies   =[
     "aiosqlite>=0.21.0",
+    "easyocr[id,indonesia]>=1.7.2",
     "fastapi[all]>=0.121.3",
     "loguru-config>=0.1.0",
+    "numpy>=2.3.5",
+    "pillow>=10.4.0",
     "pydantic-settings>=2.12.0",
     "pyodbc>=5.3.0",
     "sqlalchemy>=2.0.44",
+    "surya-ocr>=0.17.0",
+    "torch>=2.9.1",
+    "torchvision>=0.24.1",
 ]
     description    ="A tools for otomax software to bulk insert voucher codes into otomax database."
     name           ="mkit-input-voucher"

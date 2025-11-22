@@ -1,0 +1,29 @@
+handlers:
+  - sink: ext://sys.stdout
+    format: "<level>{level:}</>:<magenta>{name: >13}.{function:}</><le>[{line:}]</>-> <cyan><b>{message}</></><y>[{extra!r}]</>"
+    enqueue: true
+    diagnose: true
+    backtrace: true
+    level: DEBUG
+  - sink: ./logs/file.log
+    format: "{time:YYYY-MM-DD HH:mm:ss}<level>{level:}</>.{name:}.{function:}.{line:}.{message}"
+    level: INFO
+    colorize: false
+    serialize: true
+  - sink: ./logs/error.log
+    format: "{time:YYYY-MM-DD HH:mm:ss}<level>{level:}</>.{name:}.{function:}.{line:}.{message}"
+    level: ERROR
+    colorize: false
+    serialize: true
+levels:
+  - name: METRIC
+    "no": 25
+extra:
+  default: "mkit"
+activation:
+  # set to false to disable logging for specific modules
+  - ["httpx_retries", false]
+  - ["httpcore", true]
+  - ["httpx", false]
+  - ["uvicorn", false]
+  - ["aiosqlite", false]

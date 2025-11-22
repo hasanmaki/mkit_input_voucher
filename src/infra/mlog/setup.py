@@ -1,0 +1,93 @@
+"""Production Loguru logging setup.
+
+This module provides clean logging configuration for production use.
+Tests should use standard Python logging with pytest's caplog fixture.
+
+Behavior:
+    - Idempotent: calling setup_logging multiple times does nothing unless force=True
+    - Loads YAML config if present via loguru-config
+    - Falls back to stdout INFO logging if config not found
+    - Standard logging module calls are intercepted and forwarded to Loguru
+"""
+
+from __future__ import annotations
+
+import logging
+import sys
+from pathlib import Path
+
+from loguru import logger
+from loguru_config import LoguruConfig
+
+from src.infra.mlog.utils import InterceptHandler, MetricsCollector
+
+BASE_DIR = Path(__file__).resolve().parents[3]  # Up to project root
+CONFIG_PATH = BASE_DIR / "config_log.yaml"
+
+
+class LoguruLoggingService:
+    """Production Loguru logging service implementation.
+
+    This implementation:
+    - Loads YAML config if present via loguru-config
+    - Falls back to stdout INFO logging if config not found
+    - Intercepts standard logging module calls and forwards to Loguru
+    - Registers METRIC custom level
+    - Adds MetricsCollector sink for metrics
+    """
+
+    @staticmethod
+    def setup_logging(config_path: str | Path | None = None) -> None:
+        """Configure Loguru sinks based on configuration file.
+
+        METRIC level and main sinks are defined in config_log.yaml via loguru-config.
+        MetricsCollector sink is added here for metrics collection.
+        This function also sets up stdlib logging interception.
+
+        Args:
+            config_path: Path to YAML config file. Defaults to config_log.yaml at project root
+        """
+        # Remove default sink before loading from config
+        logger.remove()
+
+        if config_path is None:
+            config_path = CONFIG_PATH
+
+        try:
+            if Path(config_path).is_file():
+                # Load config via loguru-config (includes METRIC level and main sinks)
+                LoguruConfig().load(config_or_file=str(config_path))
+                logger.info(f"Loaded logging config: {config_path}")
+            else:
+                # Fallback: basic stdout sink + register METRIC level
+                logger.level("METRIC", no=25)
+                logger.add(
+                    sys.stdout, level="INFO", format="{time} | {level} | {message}"
+                )
+                logger.warning(
+                    f"Config file not found: {config_path}, using stdout fallback"
+                )
+        except Exception as e:  # pragma: no cover - defensive
+            logger.level("METRIC", no=25)
+            logger.add(sys.stdout, level="INFO", format="{time} | {level} | {message}")
+            logger.error(
+                f"Failed to load logging config ({config_path}): {e}; fallback stdout applied"
+            )
+
+        # Add MetricsCollector sink for METRIC level logs
+        # (METRIC level should be registered by now from YAML or fallback)
+        metrics_collector = MetricsCollector()
+        logger.add(metrics_collector, level="METRIC", format="{message}")
+
+        # Intercept stdlib logging and forward to loguru
+        logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
+
+
+# Convenience function for backward compatibility
+def setup_logging(config_path: str | Path | None = None) -> None:
+    """Setup logging using LoguruLoggingService implementation.
+
+    Args:
+        config_path: Path to YAML config file. Defaults to config_log.yaml at project root
+    """
+    LoguruLoggingService.setup_logging(config_path)

@@ -17,6 +17,10 @@ from src.core.middlewares import (
     TraceIDMiddleware,
 )
 
+# setup logging
+from src.infra.mlog.setup import LoguruLoggingService
+
+LoguruLoggingService.setup_logging()
 app = FastAPI()
 
 # Typing helper to satisfy static type checkers for exception handlers

@@ -191,7 +191,7 @@ class TestLoggerWraps:
             return 42
 
         assert documented_func.__name__ == "documented_func"
-        assert "My docstring" in documented_func.__doc__
+        assert "My docstring" in documented_func.__doc__  # type: ignore
 
 
 @pytest.mark.unit

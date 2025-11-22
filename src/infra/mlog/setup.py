@@ -41,6 +41,18 @@ class LoguruLoggingService:
     _lock: Lock = Lock()
 
     @classmethod
+    def _register_metric_level(cls) -> None:
+        """Register METRIC custom level if it doesn't already exist.
+
+        Safe to call multiple times - checks for existing level before registering.
+        """
+        try:
+            logger.level("METRIC")  # Check if exists
+        except ValueError:
+            # Level doesn't exist, register it
+            logger.level("METRIC", no=25)
+
+    @classmethod
     def setup_logging(
         cls, config_path: str | Path | None = None, force: bool = False
     ) -> None:
@@ -77,7 +89,7 @@ class LoguruLoggingService:
                     logger.info(f"Loaded logging config: {config_path}")
                 else:
                     # Fallback: basic stdout sink + register METRIC level
-                    logger.level("METRIC", no=25)
+                    cls._register_metric_level()
                     logger.add(
                         sys.stdout, level="INFO", format="{time} | {level} | {message}"
                     )
@@ -86,7 +98,7 @@ class LoguruLoggingService:
                     )
             except (FileNotFoundError, OSError, PermissionError) as e:
                 # Handle file/IO errors gracefully
-                logger.level("METRIC", no=25)
+                cls._register_metric_level()
                 logger.add(
                     sys.stdout, level="INFO", format="{time} | {level} | {message}"
                 )
@@ -94,7 +106,7 @@ class LoguruLoggingService:
                     f"Config load failed ({type(e).__name__}): {e}; using fallback"
                 )
             except Exception as e:  # pragma: no cover - defensive catch-all
-                logger.level("METRIC", no=25)
+                cls._register_metric_level()
                 logger.add(
                     sys.stdout, level="INFO", format="{time} | {level} | {message}"
                 )

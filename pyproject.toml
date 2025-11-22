@@ -100,39 +100,40 @@ docstring-code-line-length = 60
 skip-magic-trailing-comma = false
 
 
-[tool.pyright]
-include = ["src"]
-ignore = ["**/typings"]
-exclude = [
-    ".*",
-    "__*",
-    "**/typings",
-    "**/migrations",
-    "**/tests",
-    "**/venv",
-    "**/.venv",
-    "**/.env",
-    "**/.vscode",
-    "**/node_modules",
-    "**/__pycache__",
-    "**/*.egg-info",
-    "**/dist",
-    "**/*.pyi",
-    "${python.envPath}/Lib/",
-    "workspaceFolder/Lib/",
-    "**/Lib/",
-    "**/lib/",
-    "**/alembic/*",
-    ]
 
-typeCheckingMode = "standard"
-stubPath = "typings"
-typeshedPath = "typings"
-pythonPlatform = "Windows"
-pythonVersion = "3.13"
-reportMissingImports = "error"
-reportMissingModuleSource = "none"
-reportUnnecessaryTypeIgnoreComment = "information"
+[tool.pyright]
+    exclude=[
+        "${python.envPath}/Lib/",
+        "**/*.egg-info",
+        "**/*.pyi",
+        "**/.env",
+        "**/.venv",
+        "**/.vscode",
+        "**/Lib/",
+        "**/__pycache__",
+        "**/alembic/*",
+        "**/dist",
+        "**/lib/",
+        "**/migrations",
+        "**/node_modules",
+        "**/tests",
+        "**/typings",
+        "**/venv",
+        ".*",
+        "__*",
+        "workspaceFolder/Lib/",
+    ]
+    ignore=["**/typings"]
+    include=["backend", "tests"]
+
+    pythonPlatform                    ="Windows"
+    pythonVersion                     ="3.13"
+    reportMissingImports              ="error"
+    reportMissingModuleSource         ="none"
+    reportUnnecessaryTypeIgnoreComment="information"
+    stubPath                          ="typings"
+    typeCheckingMode                  ="standard"
+    typeshedPath                      ="typings"
 
 [tool.coverage.run]
 source = ["src"]
@@ -168,72 +169,60 @@ skip_covered = false
 skip_empty = true
 
 [tool.pytest.ini_options]
-generate_report_on_test = true
-testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-pythonpath = ["src"]
-addopts = [
-    "-v",
-    "--strict-markers",
-    "--tb=short",
-    "--no-header",
-    "--disable-warnings",
-    "--cov=src",
-    "--cov-report=html:.reports/coverage",
-    "--cov-report=term-missing:skip-covered",
-    "--html=.reports/tests/report.html",
-    "--self-contained-html",
-]
-asyncio_mode = "auto"
+    addopts=[
+        "--cov-report=html:.reports/coverage",    # generate HTML coverage report
+        "--cov-report=term-missing:skip-covered", # show missing lines in terminal, skip fully covered files
+        "--cov=src",                          # measure coverage for the 'src' package
+        "--disable-warnings",                     # disable warnings during test runs
+        "--ff",                                   # run the failures first and then the rest of the tests
+        "--html=.reports/tests/report.html",      # generate HTML report
+        "--lf",                                   # only re-run the failures
+        "--no-header",                            # omit the header from the test output
+        "--self-contained-html",                  # make the HTML report self-contained
+        "--strict-markers",                       # strict marker checking
+        "--tb=short",                             # short traceback format
+        # "-n=auto",                                # run tests in parallel using all available CPUs
+        "-q",  # verbose output
+        "-ra", # show extra test summary info
+    ]
+    asyncio_mode="auto"
+    generate_report_on_test=true
+    python_classes=["Test*"]
+    python_files=["*_test.py", "test_*.py"]
+    python_functions=["test_*"]
+    pythonpath=["backend"]
+    testpaths=["tests"]
 
-# log_cli = true
-# log_cli_level = "DEBUG"
-# log_cli_format = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
-# log_cli_date_format = "%Y-%m-%d %H:%M:%S"
-# log_auto_indent = true
-markers = [
-    "slow: mark test as slow to run",
-    "integration: mark test as integration test",
-    "unit: mark test as unit test",
-    "performance: mark test as performance test",
-    "regression: mark test as regression test",
-    "smoke: mark test as smoke test",
-    "ui: mark test as UI test",
-    "api: mark test as API test",
-    "database: mark test as database-related",
-    "e2e: mark end to end testing",
-]
-filterwarnings = [
-    "ignore::DeprecationWarning",
-    "ignore::PendingDeprecationWarning"
-]
-minversion = "8.0"
-norecursedirs = [
-    ".*",
-    "build",
-    "dist",
-    "*.egg",
-    ".git",
-    ".venv",
-    "venv",
-    "__pycache__",
-    ".pytest_cache",
-    ".reports",
-]
-
-
-[tool.alembic]
-
-script_location = "%(here)s/alembic"
-file_template = "%%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s"
-prepend_sys_path = [".", "src"]
-
-
-[[tool.alembic.post_write_hooks]]
-# lint with attempts to fix using "ruff" - use the exec runner, against the "ruff" binary
-name = "ruff"
-type = "exec"
-executable = "ruff"
-options = "check --fix REVISION_SCRIPT_FILENAME"
+    filterwarnings=[
+        "ignore::DeprecationWarning",
+        "ignore::PendingDeprecationWarning",
+    ]
+    log_cli=true
+    log_cli_format="%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+    log_cli_level="DEBUG"
+    log_file=".reports/tests/pytest.log"
+    markers=[
+        "api: mark test as API test",
+        "database: mark test as database-related",
+        "e2e: mark end to end testing",
+        "integration: mark test as integration test",
+        "performance: mark test as performance test",
+        "regression: mark test as regression test",
+        "slow: mark test as slow to run",
+        "smoke: mark test as smoke test",
+        "ui: mark test as UI test",
+        "unit: mark test as unit test",
+    ]
+    minversion="8.0"
+    norecursedirs=[
+        "*.egg",
+        ".*",
+        ".git",
+        ".pytest_cache",
+        ".reports",
+        ".venv",
+        "__pycache__",
+        "build",
+        "dist",
+        "venv",
+    ]

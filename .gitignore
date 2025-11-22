@@ -212,3 +212,4 @@ __marimo__/
 *.instructions.md
 .sample/
 *.agent.md
+.reports/

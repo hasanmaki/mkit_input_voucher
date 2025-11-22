@@ -5,14 +5,11 @@ Practical tests for setup, utils, and decorators.
 
 import asyncio
 import json
-import tempfile
 import time
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 from loguru import logger
-
 from src.infra.mlog.decorators import logger_wraps, metric, timeit
 from src.infra.mlog.setup import LoguruLoggingService
 from src.infra.mlog.utils import MetricsCollector
@@ -159,6 +156,7 @@ class TestLoggerWraps:
 
     def test_logger_wraps_sync_function(self):
         """Test logger_wraps on sync function."""
+
         @logger_wraps(entry=True, exit=True)
         def my_func():
             return "result"
@@ -172,6 +170,7 @@ class TestLoggerWraps:
     @pytest.mark.asyncio
     async def test_logger_wraps_async_function(self):
         """Test logger_wraps on async function."""
+
         @logger_wraps(entry=True, exit=True)
         async def my_async_func():
             await asyncio.sleep(0.001)
@@ -185,6 +184,7 @@ class TestLoggerWraps:
 
     def test_logger_wraps_preserves_metadata(self):
         """Test that decorator preserves function metadata."""
+
         @logger_wraps()
         def documented_func():
             """My docstring."""
@@ -200,6 +200,7 @@ class TestTimeit:
 
     def test_timeit_logs_sync_function(self):
         """Test timeit logs execution time."""
+
         @timeit
         def slow_func():
             time.sleep(0.01)
@@ -214,6 +215,7 @@ class TestTimeit:
     @pytest.mark.asyncio
     async def test_timeit_logs_async_function(self):
         """Test timeit logs async execution time."""
+
         @timeit
         async def slow_async():
             await asyncio.sleep(0.01)
@@ -227,6 +229,7 @@ class TestTimeit:
 
     def test_timeit_logs_on_exception(self):
         """Test timeit still logs even on exception."""
+
         @timeit
         def failing_func():
             raise ValueError("error")
@@ -244,6 +247,7 @@ class TestMetricDecorator:
 
     def test_metric_logs_sync_function(self):
         """Test metric decorator on sync function."""
+
         @metric("test_metric")
         def func():
             return "value"
@@ -258,6 +262,7 @@ class TestMetricDecorator:
     @pytest.mark.asyncio
     async def test_metric_logs_async_function(self):
         """Test metric decorator on async function."""
+
         @metric("async_metric")
         async def async_func():
             await asyncio.sleep(0.001)
@@ -272,6 +277,7 @@ class TestMetricDecorator:
 
     def test_metric_includes_timing_value(self):
         """Test metric includes execution time."""
+
         @metric("timing_metric")
         def timed_func():
             time.sleep(0.01)

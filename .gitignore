@@ -211,3 +211,4 @@ __marimo__/
 .kilocode/
 *.instructions.md
 .sample/
+*.agent.md

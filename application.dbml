@@ -1,0 +1,45 @@
+project "mkit_input_voucher" {
+  Note: '''
+  # STAGING DB
+    Database SQLite untuk staging data sebelum di proses ke Database Utama ( SQL Server )
+
+  ## Benefits
+
+  * Menjaga Validasi Data sebelum di proses ke Database Utama
+  * Memungkin kan Pre-processing data sebelum di proses ke Database Utama
+  * Memungkinkan Validasi dan Preview data oleh User sebelum di proses ke Database Utama
+  '''
+}
+
+enum voucher_usage_status {
+    0 [note: "inactive"]
+    1 [note: "active"]
+    2 [note: "used"]
+}
+
+enum voucher_insert_status {
+    0 [note: "belum di proses"]
+    1 [note: "dalam antrian input"]
+    2 [note: "rejected input"]
+    3 [note: "sukses input"]
+}
+
+Table transaction {
+    // using CPK
+    product_code varchar(50) [not null, primary key, note: "Kode Produk : di input ke database utama"]
+    voucher_code varchar(50) [not null, primary key, note: "Kode Voucher: di input ke database utama"]
+
+    usage_status voucher_usage_status [not null, default: 0, note: "Status Voucher : di input ke database utama"]
+    serial_number varchar(100) [null, note: "Nomor Seri : di input ke database utama"]
+    expiry_date datetime [null, note: "Tanggal Kadaluarsa : di input ke database utama"]
+
+    // above field tidak di input ke database utama
+    insert_status voucher_insert_status [not null, default: 0, note: "hanya untuk staging tidak di input ke database utama"]
+    entry_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: "Tanggal Entri Data : hanya untuk staging tidak di input ke database utama"]
+    status_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: "Tanggal Update Status : hanya untuk staging tidak di input ke database utama"]
+
+    batch_id varchar(50) [not null, note: "ID upload batch (grouping)"]
+    source varchar(20) [not null, note: "manual/csv/image/ai"]
+    created_by varchar(50) [not null, note: "Siapa yang input"]
+
+}

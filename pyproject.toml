@@ -29,6 +29,10 @@ dev = [
     "ruff>=0.11.13",
     "schemathesis>=4.0.15",
     "pytest-asyncio>=1.1.0",
+    "pytest-benchmark>=5.2.3",
+    "pytest-xdist[psutil]>=3.8.0",
+    "pytest-sugar>=1.1.1",
+    "pytest-loguru>=0.4.0",
 ]
 
 [tool.ruff]

@@ -189,7 +189,7 @@ def metric(metric_name: str) -> Callable:
     return decorator
 
 
-def mini_benchmark(func: F) -> F:
+def mini_benchmark[F: Callable[..., Any]](func: F) -> F:
     """Decorator for comprehensive performance benchmarking.
 
     Measures and logs:
@@ -200,9 +200,17 @@ def mini_benchmark(func: F) -> F:
     Useful for identifying memory leaks and performance regressions.
     Logs to DEBUG level.
 
+    ⚠️ WARNING: tracemalloc adds ~30% overhead. Only enabled when
+    ENABLE_PROFILING=1 environment variable is set.
+
     Example:
     --------
     ```python
+    import os
+
+    os.environ["ENABLE_PROFILING"] = "1"  # Enable profiling
+
+
     @mini_benchmark
     def process_large_file(file_path: str) -> list:
         # ... file processing logic ...
@@ -222,8 +230,11 @@ def mini_benchmark(func: F) -> F:
     Returns:
     -------
     Callable
-        Wrapped function with benchmarking
+        Wrapped function with benchmarking (or original function if profiling disabled)
     """
+    # Skip benchmarking overhead if profiling is not enabled
+    if os.getenv("ENABLE_PROFILING", "").strip() != "1":
+        return func
 
     @wraps(func)
     def sync_wrapper(*args: Any, **kwargs: Any) -> Any:

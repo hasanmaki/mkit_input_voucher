@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 import sys
 from pathlib import Path
+from threading import Lock
 
 from loguru import logger
 from loguru_config import LoguruConfig
@@ -36,9 +37,14 @@ class LoguruLoggingService:
     - Adds MetricsCollector sink for metrics
     """
 
-    @staticmethod
-    def setup_logging(config_path: str | Path | None = None) -> None:
-        """Configure Loguru sinks based on configuration file.
+    _initialized: bool = False
+    _lock: Lock = Lock()
+
+    @classmethod
+    def setup_logging(
+        cls, config_path: str | Path | None = None, force: bool = False
+    ) -> None:
+        """Configure Loguru sinks based on configuration file (idempotent).
 
         METRIC level and main sinks are defined in config_log.yaml via loguru-config.
         MetricsCollector sink is added here for metrics collection.
@@ -46,48 +52,74 @@ class LoguruLoggingService:
 
         Args:
             config_path: Path to YAML config file. Defaults to config_log.yaml at project root
+            force: Force reconfiguration even if already initialized
         """
-        # Remove default sink before loading from config
-        logger.remove()
+        with cls._lock:
+            # Idempotency check
+            if cls._initialized and not force:
+                logger.debug("Logging already configured, skipping setup")
+                return
 
-        if config_path is None:
-            config_path = CONFIG_PATH
+            # Remove default sink before loading from config
+            logger.remove()
 
-        try:
-            if Path(config_path).is_file():
-                # Load config via loguru-config (includes METRIC level and main sinks)
-                LoguruConfig().load(config_or_file=str(config_path))
-                logger.info(f"Loaded logging config: {config_path}")
-            else:
-                # Fallback: basic stdout sink + register METRIC level
+            if config_path is None:
+                config_path = CONFIG_PATH
+
+            # Ensure logs directory exists before configuring file sinks
+            logs_dir = BASE_DIR / "logs"
+            logs_dir.mkdir(exist_ok=True, parents=True)
+
+            try:
+                if Path(config_path).is_file():
+                    # Load config via loguru-config (includes METRIC level and main sinks)
+                    LoguruConfig().load(config_or_file=str(config_path))
+                    logger.info(f"Loaded logging config: {config_path}")
+                else:
+                    # Fallback: basic stdout sink + register METRIC level
+                    logger.level("METRIC", no=25)
+                    logger.add(
+                        sys.stdout, level="INFO", format="{time} | {level} | {message}"
+                    )
+                    logger.warning(
+                        f"Config file not found: {config_path}, using stdout fallback"
+                    )
+            except (FileNotFoundError, OSError, PermissionError) as e:
+                # Handle file/IO errors gracefully
                 logger.level("METRIC", no=25)
                 logger.add(
                     sys.stdout, level="INFO", format="{time} | {level} | {message}"
                 )
                 logger.warning(
-                    f"Config file not found: {config_path}, using stdout fallback"
+                    f"Config load failed ({type(e).__name__}): {e}; using fallback"
                 )
-        except Exception as e:  # pragma: no cover - defensive
-            logger.level("METRIC", no=25)
-            logger.add(sys.stdout, level="INFO", format="{time} | {level} | {message}")
-            logger.error(
-                f"Failed to load logging config ({config_path}): {e}; fallback stdout applied"
-            )
+            except Exception as e:  # pragma: no cover - defensive catch-all
+                logger.level("METRIC", no=25)
+                logger.add(
+                    sys.stdout, level="INFO", format="{time} | {level} | {message}"
+                )
+                logger.critical(
+                    f"CRITICAL: Unexpected error in logging setup: {e}", exc_info=True
+                )
 
-        # Add MetricsCollector sink for METRIC level logs
-        # (METRIC level should be registered by now from YAML or fallback)
-        metrics_collector = MetricsCollector()
-        logger.add(metrics_collector, level="METRIC", format="{message}")
+            # Add MetricsCollector sink for METRIC level logs
+            # (METRIC level should be registered by now from YAML or fallback)
+            metrics_collector = MetricsCollector()
+            logger.add(metrics_collector, level="METRIC", format="{message}")
 
-        # Intercept stdlib logging and forward to loguru
-        logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
+            # Intercept stdlib logging and forward to loguru
+            logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
+
+            # Mark as initialized
+            cls._initialized = True
 
 
 # Convenience function for backward compatibility
-def setup_logging(config_path: str | Path | None = None) -> None:
+def setup_logging(config_path: str | Path | None = None, force: bool = False) -> None:
     """Setup logging using LoguruLoggingService implementation.
 
     Args:
         config_path: Path to YAML config file. Defaults to config_log.yaml at project root
+        force: Force reconfiguration even if already initialized
     """
-    LoguruLoggingService.setup_logging(config_path)
+    LoguruLoggingService.setup_logging(config_path, force=force)

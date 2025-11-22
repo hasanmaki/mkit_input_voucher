@@ -3,7 +3,7 @@
 import inspect
 import json
 import logging
-from collections import defaultdict
+from collections import defaultdict, deque
 from threading import Lock
 from typing import Any
 
@@ -34,7 +34,7 @@ class MetricsCollector:
     r"""Logger sink to collect METRIC level logs into a structured format.
 
     Thread-safe collector for performance metrics. Accumulates metrics with timestamps
-    for later analysis and export.
+    for later analysis and export. Uses bounded deque to prevent memory leaks.
 
     Example:
         ```python
@@ -51,10 +51,16 @@ class MetricsCollector:
         # Later, save metrics
         collector.save_metrics("metrics.json")
         ```
+
+    Args:
+        max_metrics_per_type: Maximum metrics to retain per metric name (prevents memory leak)
     """
 
-    def __init__(self) -> None:
-        self.metrics: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    def __init__(self, max_metrics_per_type: int = 10000) -> None:
+        self.max_metrics_per_type = max_metrics_per_type
+        self.metrics: dict[str, deque] = defaultdict(
+            lambda: deque(maxlen=self.max_metrics_per_type)
+        )
         self._lock = Lock()  # Thread-safety for concurrent requests
 
     def __call__(self, message: Any) -> None:
@@ -70,12 +76,16 @@ class MetricsCollector:
         extra = record["extra"]
         if "metric_name" in extra and "value" in extra:
             with self._lock:
-                self.metrics[extra["metric_name"]].append(
-                    {
-                        "value": extra["value"],
-                        "timestamp": record["time"].timestamp(),
-                    }
-                )
+                self.metrics[extra["metric_name"]].append({
+                    "value": extra["value"],
+                    "timestamp": record["time"].timestamp(),
+                })
+
+    def clear(self) -> None:
+        """Clear all collected metrics."""
+        with self._lock:
+            self.metrics.clear()
+            logger.debug("Metrics cleared")
 
     def save_metrics(self, path: str = "metrics.json") -> None:
         """Save collected metrics to JSON file.
@@ -88,7 +98,9 @@ class MetricsCollector:
         """
         try:
             with self._lock, open(path, "w") as f:
-                json.dump(dict(self.metrics), f, indent=2)
+                # Convert deque to list for JSON serialization
+                metrics_dict = {k: list(v) for k, v in self.metrics.items()}
+                json.dump(metrics_dict, f, indent=2)
             logger.info(f"Metrics saved to {path}")
         except OSError as e:
             logger.error(f"Failed to save metrics to {path}: {e}")

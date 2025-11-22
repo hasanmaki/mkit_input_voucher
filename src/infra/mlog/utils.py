@@ -76,10 +76,12 @@ class MetricsCollector:
         extra = record["extra"]
         if "metric_name" in extra and "value" in extra:
             with self._lock:
-                self.metrics[extra["metric_name"]].append({
-                    "value": extra["value"],
-                    "timestamp": record["time"].timestamp(),
-                })
+                self.metrics[extra["metric_name"]].append(
+                    {
+                        "value": extra["value"],
+                        "timestamp": record["time"].timestamp(),
+                    }
+                )
 
     def clear(self) -> None:
         """Clear all collected metrics."""

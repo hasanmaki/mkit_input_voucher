@@ -124,7 +124,7 @@ skip-magic-trailing-comma = false
         "workspaceFolder/Lib/",
     ]
     ignore=["**/typings"]
-    include=["backend", "tests"]
+    include=["src", "tests"]
 
     pythonPlatform                    ="Windows"
     pythonVersion                     ="3.13"
@@ -199,7 +199,7 @@ skip_empty = true
     ]
     log_cli=true
     log_cli_format="%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
-    log_cli_level="DEBUG"
+    log_cli_level="INFO"
     log_file=".reports/tests/pytest.log"
     markers=[
         "api: mark test as API test",

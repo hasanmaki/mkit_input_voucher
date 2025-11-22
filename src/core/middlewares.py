@@ -21,18 +21,22 @@ class TraceIDMiddleware(BaseHTTPMiddleware):
 
 
 class RequestTimingMiddleware(BaseHTTPMiddleware):
-    """Measure request execution time, even on errors."""
+    """Measure request execution time, safe even on exceptions."""
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         start = time.perf_counter()
+
         try:
             response = await call_next(request)
-        finally:
-            duration = (time.perf_counter() - start) * 1000  # ms
+        except Exception:
+            duration = (time.perf_counter() - start) * 1000
             request.state.duration_ms = duration
-
-        response.headers["X-Process-Time"] = f"{duration:.2f}ms"
-        return response
+            raise
+        else:
+            duration = (time.perf_counter() - start) * 1000
+            request.state.duration_ms = duration
+            response.headers["X-Process-Time"] = f"{duration:.2f}ms"
+            return response
 
 
 class ClientInfoMiddleware(BaseHTTPMiddleware):
@@ -45,19 +49,17 @@ class ClientInfoMiddleware(BaseHTTPMiddleware):
 
     @staticmethod
     def _get_ip(request: Request) -> str:
-        forwarded = request.headers.get("x-forwarded-for")
-        if forwarded:
+        if forwarded := request.headers.get("x-forwarded-for"):
             return forwarded.split(",")[0].strip()
 
-        real_ip = request.headers.get("x-real-ip")
-        if real_ip:
-            return real_ip
+        if real := request.headers.get("x-real-ip"):
+            return real
 
         return request.client.host if request.client else "unknown"
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
-    """Log the request AFTER all other middlewares fill request.state."""
+    """Log AFTER all other middlewares enrich request.state."""
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         response = None
@@ -65,8 +67,8 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             return response
         finally:
-            # Log even if an exception occurred (will be re-raised after logging)
             status = response.status_code if response else "error"
+
             logger.bind(
                 trace_id=getattr(request.state, "trace_id", None),
                 duration_ms=getattr(request.state, "duration_ms", None),

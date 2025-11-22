@@ -234,9 +234,8 @@ class TestTimeit:
         def failing_func():
             raise ValueError("error")
 
-        with patch("loguru.logger.debug") as mock_debug:
-            with pytest.raises(ValueError):
-                failing_func()
+        with patch("loguru.logger.debug") as mock_debug, pytest.raises(ValueError):
+            failing_func()
 
         mock_debug.assert_called_once()
 
